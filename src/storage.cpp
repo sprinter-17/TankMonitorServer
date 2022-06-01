@@ -10,7 +10,7 @@
 
 const int LINE_SIZE = 33;
 
-void Storage_::begin(byte chipSelectPin) {
+void Storage::begin() {
     if (!SD.begin(chipSelectPin)) {
 #if DEBUG
         Serial.println("initialization failed!");
@@ -18,7 +18,7 @@ void Storage_::begin(byte chipSelectPin) {
     }
 }
 
-void Storage_::listFiles() {
+void Storage::listFiles() {
     File root = SD.open("/");
     while (File file = root.openNextFile()) {
         char* file_name = file.name();
@@ -47,7 +47,7 @@ char* tankFileName(int tank) {
     return filename;
 }
 
-void Storage_::storeReading(int tank, TankReading reading) {
+void Storage::storeReading(int tank, TankReading reading) {
     File file = SD.open(tankFileName(tank), FILE_WRITE);
     if (file) {
         sprintf(print_text, "%02d %02d %02d %02d %02d %02d - %04d %04d %02d\n",
@@ -65,11 +65,11 @@ void Storage_::storeReading(int tank, TankReading reading) {
     }
 }
 
-void Storage_::retrieveRecentReadings() {
+void Storage::retrieveRecentReadings() {
     for (int tank = 1; tank <= TANK_COUNT; tank++) {
         File file = SD.open(tankFileName(tank), FILE_READ);
         if (file) {
-            TankDisplay.showMessage(file.name());
+            display.showMessage(file.name());
 #if DEBUG
             Serial.print("Reading file ");
             Serial.println(file.name());
@@ -107,10 +107,10 @@ void Storage_::retrieveRecentReadings() {
     }
 }
 
-void Storage_::generateTestData() {
+void Storage::generateTestData() {
     for (int tank = 1; tank <= TANK_COUNT; tank++) {
         sprintf(print_text, "Test data tank %d", tank);
-        TankDisplay.showMessage(print_text);
+        display.showMessage(print_text);
         int height = Tank::getTank(tank)->getHeight();
         int fullness = random(height);
         char* fileName = tankFileName(tank);
@@ -138,5 +138,3 @@ void Storage_::generateTestData() {
         }
     }
 }
-
-Storage_ Storage;

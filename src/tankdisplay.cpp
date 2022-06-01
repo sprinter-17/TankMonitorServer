@@ -8,6 +8,9 @@
 
 const byte SCREEN_WIDTH = 128;  // OLED display width, in pixels
 const byte SCREEN_HEIGHT = 64;  // OLED display height, in pixels
+
+const uint32_t BITRATE = 2000000UL;
+
 const short LINE_MARGIN = 2;
 const short TANK_CODE_WIDTH = 16;
 const short BATTERY_WIDTH = 7;
@@ -20,22 +23,15 @@ const short LINE_HEIGHT = SCREEN_HEIGHT / TANK_COUNT;
 const short RECT_HEIGHT = LINE_HEIGHT - LINE_MARGIN * 2;
 const short RECT_CORNER_RADIUS = 2;
 
-// Declaration for SSD1306 display using HW SPI
-const byte OLED_DATA_COMMAND = 3;  // pin 4 on OLED 3v - 3 on shifter
-const byte OLED_CHIP_SELECT = 4;   // pin 15 on OLED 3v - 4 on shifter
-const byte OLED_RESET = 5;         // pin 16 on OLED 3v - 5 on shifter
+void drawTankSummary(Adafruit_SSD1306 display, int y, Tank* tank);
+void drawTankDetail(Adafruit_SSD1306 display, Tank* tank);
 
-// SPI comms pins
-// const uint8_t COPI_PIN = 11; // pin 8 on OLED 3v - MOSI - 6 on shifter
-// const uint8_t SCK_PIN = 13; // pin 7 on OLED 3v - SCK - 7 on shifter
+TankDisplay::TankDisplay(uint8_t dataCommandPin, uint8_t chipSelectPin, uint8_t resetPin)
+    : display(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, dataCommandPin, resetPin, chipSelectPin,
+               BITRATE),
+      mode(1) {}
 
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &SPI, OLED_DATA_COMMAND, OLED_RESET,
-                         OLED_CHIP_SELECT, 2000000UL);
-
-void drawTankSummary(int y, Tank* tank);
-void drawTankDetail(Tank* tank);
-
-void TankDisplay_::begin() {
+void TankDisplay::begin() {
     // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
     if (!display.begin(SSD1306_SWITCHCAPVCC)) {
 #if DEBUG
@@ -51,41 +47,41 @@ void TankDisplay_::begin() {
     display.clearDisplay();
 }
 
-void TankDisplay_::showMessage(char* message) {
+void TankDisplay::showMessage(char* message) {
     display.println(message);
     display.display();
 }
 
-void TankDisplay_::turnOff() {
+void TankDisplay::turnOff() {
     mode = 0;
     draw();
 }
 
-void TankDisplay_::changeMode() {
+void TankDisplay::changeMode() {
     ++mode;
     if (mode > TANK_COUNT + 1) mode = 1;
     draw();
 }
 
-void TankDisplay_::draw() {
+void TankDisplay::draw() {
     display.clearDisplay();
     if (mode == 1) {
         for (int i = 0; i < TANK_COUNT; i++) {
             int y = LINE_HEIGHT * i + LINE_MARGIN;
-            drawTankSummary(y, Tank::getTank(i + 1));
+            drawTankSummary(display, y, Tank::getTank(i + 1));
         }
     } else {
-        drawTankDetail(Tank::getTank(mode - 1));
+        drawTankDetail(display, Tank::getTank(mode - 1));
     }
     display.display();
 }
 
-void drawTankLabel(int x, int y, Tank* tank) {
+void drawTankLabel(Adafruit_SSD1306 display, int x, int y, Tank* tank) {
     display.setCursor(x, y + 4);  // Start at top-left corner
     display.write(tank->getCode());
 }
 
-void drawTankBattery(int x, int y, Tank* tank) {
+void drawTankBattery(Adafruit_SSD1306 display, int x, int y, Tank* tank) {
     int battery = tank->getBattery();
 #if DEBUG
     if (battery < 0) {
@@ -105,21 +101,21 @@ void drawTankBattery(int x, int y, Tank* tank) {
     display.fillRect(x, y, BATTERY_WIDTH, battery * 2, SSD1306_WHITE);
 }
 
-void drawTankLevel(int x, int y, Tank* tank) {
+void drawTankLevel(Adafruit_SSD1306 display, int x, int y, Tank* tank) {
     float fullness = tank->getFullness();
     short barWidth = fullness * (SCREEN_WIDTH - x - RIGHT_MARGIN);
     display.fillRoundRect(x, y, barWidth, RECT_HEIGHT, RECT_CORNER_RADIUS, SSD1306_WHITE);
 }
 
-void drawTankSummary(int y, Tank* tank) {
+void drawTankSummary(Adafruit_SSD1306 display, int y, Tank* tank) {
     if (tank != NULL) {
         int x = LINE_MARGIN;
-        drawTankLabel(x, y, tank);
+        drawTankLabel(display, x, y, tank);
         if (tank->hasReading()) {
             x += TANK_CODE_WIDTH;
-            drawTankBattery(x, y, tank);
+            drawTankBattery(display, x, y, tank);
             x += BATTERY_WIDTH + GAP;
-            drawTankLevel(x, y, tank);
+            drawTankLevel(display, x, y, tank);
         } else {
             display.write("    - Unknown -");
         }
@@ -131,7 +127,7 @@ int readingToY(Tank* tank, int i) {
     return map(reading.distance, tank->getHeight(), 0, SCREEN_HEIGHT, LINE_HEIGHT * 2);
 }
 
-void drawTankDetail(Tank* tank) {
+void drawTankDetail(Adafruit_SSD1306 display, Tank* tank) {
     if (tank != NULL) {
         display.setCursor(20, 4);  // Start at top-left corner
         display.println(tank->getName());
@@ -146,5 +142,3 @@ void drawTankDetail(Tank* tank) {
         }
     }
 }
-
-TankDisplay_ TankDisplay;

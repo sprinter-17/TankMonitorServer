@@ -3,17 +3,22 @@
 
 #include <Arduino.h>
 
+#include "tankdisplay.h"
 #include "tankreading.h"
 
-class Storage_ {
+class Storage {
    public:
-    void begin(byte chipSelectPin);
+    Storage(TankDisplay display_, uint8_t chipSelectPin_)
+        : display(display_), chipSelectPin(chipSelectPin_) {}
+    void begin();
     void listFiles();
     void retrieveRecentReadings();
     void storeReading(int tank, TankReading reading);
     void generateTestData();
-};
 
-extern Storage_ Storage;
+   private:
+    uint8_t chipSelectPin;
+    TankDisplay display;
+};
 
 #endif

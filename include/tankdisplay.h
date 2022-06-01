@@ -3,9 +3,9 @@
 
 #include <Adafruit_SSD1306.h>
 
-class TankDisplay_ {
+class TankDisplay {
    public:
-    TankDisplay_() : mode(1) {}
+    TankDisplay(uint8_t dataCommandPin, uint8_t chipSelectPin, uint8_t resetPin);
     void begin();
     void showMessage(char* message);
     void draw();
@@ -13,10 +13,9 @@ class TankDisplay_ {
     void changeMode();
 
    private:
+    Adafruit_SSD1306 display;
     // mode 0: display off, 1: summary: 2+: tank details
     int mode;
 };
-
-extern TankDisplay_ TankDisplay;
 
 #endif

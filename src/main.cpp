@@ -34,8 +34,17 @@ const uint8_t EMPTY_BATTERY = 115;  // 0.87v per battery
 const uint32_t SERVER_ADDRESS = 0xAD98C4;
 const uint32_t CLIENT_ADDRESS = 0x87F4E9;
 const uint8_t ACK = 0xA7;
+
 const uint8_t SD_CS = 6;
 const uint8_t BTN_PIN = 2;
+
+// Declaration for SSD1306 display using HW SPI
+const byte OLED_DATA_COMMAND = 3;  // pin 4 on OLED 3v - 3 on shifter
+const byte OLED_CHIP_SELECT = 4;   // pin 15 on OLED 3v - 4 on shifter
+const byte OLED_RESET = 5;         // pin 16 on OLED 3v - 5 on shifter
+
+TankDisplay display(OLED_DATA_COMMAND, OLED_CHIP_SELECT, OLED_RESET);
+Storage storage(display, SD_CS);
 
 const unsigned long TIMEOUT = 10000;
 const unsigned long DEBOUNCE_DELAY = 200;
@@ -50,16 +59,16 @@ void setup() {
 #endif
 
     // initialise OLED display
-    TankDisplay.begin();
-    TankDisplay.showMessage("Starting server");
+    display.begin();
+    display.showMessage("Starting server");
 
     NRF905.begin(SERVER_ADDRESS);
     Wire.begin();
 
     // initialise SD adaptor and read history
-    Storage.begin(SD_CS);
-    Storage.retrieveRecentReadings();
-    TankDisplay.showMessage("Load complete");
+    storage.begin();
+    storage.retrieveRecentReadings();
+    display.showMessage("Load complete");
 
     // set up button for changing display
     pinMode(BTN_PIN, INPUT_PULLUP);
@@ -79,12 +88,12 @@ void setup() {
 #endif
 
     delay(1000);
-    TankDisplay.draw();
+    display.draw();
 }
 
 void loop() {
     if (millis() > lastPush + SCREEN_OFF_TIME) {
-        TankDisplay.turnOff();
+        display.turnOff();
     }
     uint8_t buffer[4];
     if (NRF905.receive(buffer, 4, TIMEOUT)) {
@@ -106,8 +115,8 @@ void loop() {
         }
         TankReading reading(distance, voltage, retries);
         Tank::addReading(tank, reading);
-        Storage.storeReading(tank, reading);
-        TankDisplay.draw();
+        storage.storeReading(tank, reading);
+        display.draw();
     } else {
 #if DEBUG
         Serial.println("Timeout");
@@ -122,6 +131,6 @@ void buttonPushed() {
         Serial.println("Pushed button");
 #endif
         lastPush = millis();
-        TankDisplay.changeMode();
+        display.changeMode();
     }
 }

@@ -1,0 +1,5 @@
+---
+Language: Cpp
+BasedOnStyle: WebKit
+IndentWidth: 2
+PointerAlignment: Left
